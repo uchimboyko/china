@@ -1,6 +1,6 @@
 'use strict';
 // Set these URLs after uploading the two video files. Leave empty to show honest placeholders.
-const MEDIA = { greeting: '', lesson: '' };
+const MEDIA = { greeting: 'assets/visitka.mp4', lesson: '' };
 // Set an HTTPS endpoint accepting JSON to enable real submission. Never put bot tokens here.
 const FORM_ENDPOINT = 'https://formspree.io/f/xbdvwyza';
 const questions = [
