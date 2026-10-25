@@ -2,7 +2,7 @@
 // Set these URLs after uploading the two video files. Leave empty to show honest placeholders.
 const MEDIA = { greeting: '', lesson: '' };
 // Set an HTTPS endpoint accepting JSON to enable real submission. Never put bot tokens here.
-const FORM_ENDPOINT = '';
+const FORM_ENDPOINT = 'https://formspree.io/f/xbdvwyza';
 const questions = [
   { title: 'Для кого и зачем изучаем язык?', options: ['Для ребёнка', 'Для себя с нуля', 'Для путешествий'] },
   { title: 'Уже знакомы с китайским?', options: ['Начинаю с нуля', 'Знаю немного слов и фраз', 'Уже учусь — хочу продолжить'] },
@@ -65,6 +65,7 @@ document.querySelectorAll('dialog').forEach(dialog => {
 async function submitLead(event) {
   event.preventDefault();
   const form = event.currentTarget;
+  if (form.dataset.submitting === 'true') return;
   const name = form.elements.name;
   const contact = form.elements.contact;
   const phone = contact.value.trim();
@@ -73,15 +74,33 @@ async function submitLead(event) {
   if (!form.reportValidity()) return;
   const status = document.querySelector(form.id === 'quiz-lead-form' ? '#quiz-form-status' : '#form-status');
   status.hidden = false;
-  if (!FORM_ENDPOINT) { status.textContent = 'Форма заполнена корректно. Это демонстрация: заявка не отправлена, отправка будет подключена позже.'; return; }
   const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
+  form.dataset.submitting = 'true';
+  form.setAttribute('aria-busy', 'true');
   status.textContent = 'Отправляем…';
   try {
-    const response = await fetch(FORM_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.value.trim(), contact: contact.value.trim(), interest: form.elements.interest?.value || 'Бесплатный пробный урок', consent: form.elements.consent?.checked || false, source: form.id, quiz: [...answers] }), signal: AbortSignal.timeout(15000) });
-    if (!response.ok) throw new Error('Submission failed');
-    status.textContent = 'Спасибо! Заявка отправлена. Кристина свяжется с вами, чтобы обсудить время.'; form.reset();
-  } catch { status.textContent = 'Не удалось отправить заявку. Попробуйте ещё раз позже.'; }
-  finally { submit.disabled = false; }
+    const payload = {
+      name: name.value.trim(), phone,
+      interest: form.elements.interest?.value || 'Бесплатный пробный урок',
+      source: form.id === 'quiz-lead-form' ? 'Квиз' : 'Форма записи',
+      _subject: 'Новая заявка — Китайский с Кристиной',
+      quiz: questions.map((question, index) => `${question.title}: ${answers[index] || 'Пропущено'}`).join('\n')
+    };
+    if (form.elements.consent) payload.consent = form.elements.consent.checked ? 'Да' : 'Нет';
+    const response = await fetch(FORM_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(20000) });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || data?.errors?.length || data?.ok === false) {
+      status.textContent = response.status === 429 ? 'Слишком много попыток. Подождите немного и повторите отправку.' : 'Не удалось отправить заявку. Повторите попытку или свяжитесь с нами по телефону +7 931 334-20-80.';
+      return;
+    }
+    status.textContent = 'Заявка отправлена. Ожидайте, с вами свяжется менеджер.';
+    form.reset();
+    const dialog = document.querySelector('#success-dialog');
+    if (!dialog.open) dialog.showModal();
+  } catch {
+    status.textContent = 'Не удалось подтвердить отправку. Проверьте соединение или свяжитесь с нами по телефону +7 931 334-20-80.';
+  }
+  finally { submit.disabled = false; form.dataset.submitting = 'false'; form.setAttribute('aria-busy', 'false'); }
 }
 document.querySelector('#lead-form').addEventListener('submit', submitLead);
 document.querySelector('#quiz-lead-form').addEventListener('submit', submitLead);
