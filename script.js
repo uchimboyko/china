@@ -94,6 +94,9 @@ async function submitLead(event) {
       return;
     }
     status.textContent = 'Заявка отправлена. Ожидайте, с вами свяжется менеджер.';
+    if (typeof ym === 'function') {
+  ym(113955524, 'reachGoal', 'form_success');
+}
     form.reset();
     const dialog = document.querySelector('#success-dialog');
     if (!dialog.open) dialog.showModal();
