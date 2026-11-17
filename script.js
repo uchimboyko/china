@@ -94,9 +94,6 @@ async function submitLead(event) {
       return;
     }
     status.textContent = 'Заявка отправлена. Ожидайте, с вами свяжется менеджер.';
-    if (typeof ym === 'function') {
-  ym(113955524, 'reachGoal', 'form_success');
-}
     form.reset();
     const dialog = document.querySelector('#success-dialog');
     if (!dialog.open) dialog.showModal();
@@ -118,3 +115,38 @@ function mountVideo(selector, src, portrait) {
 }
 mountVideo('.intro-video', MEDIA.greeting, true); mountVideo('.lesson-video', MEDIA.lesson, false);
 document.querySelector('#year').textContent = new Date().getFullYear();
+
+// Personal 27-minute offer. Persist the deadline, never restart it on refresh.
+function initTrialCountdown() {
+  const timer = document.querySelector('#trial-countdown');
+  if (!timer) return;
+  const duration = 27 * 60 * 1000;
+  const storageKey = 'kristina-trial-offer-deadline-v1';
+  let deadline = Date.now() + duration;
+  try {
+    const saved = Number(localStorage.getItem(storageKey));
+    if (Number.isFinite(saved) && saved > 0) deadline = saved;
+    else localStorage.setItem(storageKey, String(deadline));
+  } catch { /* Storage unavailable: keep the deadline for this page visit. */ }
+  let interval;
+  function update() {
+    const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    const minutes = Math.floor(seconds / 60);
+    timer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    if (seconds === 0) {
+      timer.setAttribute('aria-label', 'Время акции истекло');
+      document.querySelector('#trial-offer-title').textContent = 'Время акции истекло';
+      document.querySelector('#trial-offer-note').textContent = 'Свяжитесь с нами, чтобы уточнить доступные предложения.';
+      const cta = document.querySelector('.hero-premium-cta');
+      cta.textContent = 'Уточнить условия занятий ↗';
+      cta.href = 'tel:+79313342080';
+      clearInterval(interval);
+    } else {
+      timer.setAttribute('aria-label', `До окончания акции ${minutes} мин. ${seconds % 60} сек.`);
+    }
+  }
+  update();
+  if (deadline > Date.now()) interval = setInterval(update, 1000);
+  document.addEventListener('visibilitychange', update);
+}
+initTrialCountdown();
