@@ -22,7 +22,91 @@
 <noscript><div><img src="https://mc.yandex.ru/watch/113955524" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
 <!-- /Yandex.Metrika counter -->
 
-  <script src="https://my.lptracker.ru/land/lk/widget_lk/widget_lk.php?project_id=118142"></script>
+
+
+ <!-- LPTracker code start-->
+  <!-- Phone numbers remain visible while the tracking widget loads. -->
+
+  <!-- part 2 start -->
+  <script>(function () {
+      'use strict';
+
+      /* Единственная ссылка в коде — ручка на бренд-домене. Доменов виджета тут нет. */
+      var HOST_API = 'https://my.lptracker.ru/land/widget/';
+      var PATH_PARSER = '/lpt_widget/out/parser.min.js';
+      var PATH_KICK = '/lpt_widget/kick-widget.js';
+
+      window.addEventListener('load', function () {
+
+        var botRe = /bot|crawler|spider|crawling|facebook|pingdom|headless|phantom|slurp|mediapartners|adsbot|duckduckbot|bingpreview|pinterest|yandex|baiduspider|googlebot/i;
+        var isBot = navigator.webdriver || botRe.test(navigator.userAgent);
+        var started = false;
+
+        function loadScript(src) {
+          var s = document.createElement('script');
+          s.type = 'text/javascript'; s.async = true; s.src = src;
+          document.head.appendChild(s);
+        }
+
+        /* JSONP к ручке за живым доменом (через тег script, минуя CORS) */
+        function fetchHost(cb) {
+          var name = 'lptWgCb_' + Math.random().toString(36).slice(2);
+          var s, t;
+          function cleanup() {
+            clearTimeout(t);
+            try { delete window[name]; } catch (e) { window[name] = undefined; }
+            if (s && s.parentNode) s.parentNode.removeChild(s);
+          }
+          window[name] = function (data) { cleanup(); cb(data && data.host); };
+          t = setTimeout(function () { cleanup(); cb(null); }, 5000);
+          s = document.createElement('script');
+          s.async = true;
+          s.src = HOST_API + '?cb=' + name;
+          s.onerror = function () { cleanup(); cb(null); };
+          document.head.appendChild(s);
+        }
+
+        function init() {
+          if (started) return;
+          started = true;
+          removeUserListeners();
+
+          fetchHost(function (host) {
+            if (!host) return;
+            window.lptWg = window.lptWg || {};
+            window.lptWg.projectId = 118142;
+            window.lptWg.parser = true;
+            loadScript('https://' + host + PATH_PARSER);
+            loadScript('https://' + host + PATH_KICK);
+          });
+        }
+
+        function onUserEvent(evt) {
+          if (evt && evt.isTrusted) init();
+        }
+
+        const userEvents = ['keydown', 'scroll', 'touchstart', 'click', 'mousemove', 'mousedown'];
+
+        function addUserListeners() {
+          userEvents.forEach(function (ev) {
+            window.addEventListener(ev, onUserEvent, { passive: true, once: true });
+          });
+        }
+
+        function removeUserListeners() {
+          userEvents.forEach(function (ev) {
+            window.removeEventListener(ev, onUserEvent);
+          });
+        }
+
+        if (!isBot) addUserListeners(); // только для живых людей
+      });
+    })();</script>
+  <!-- part 2 end -->
+  <!-- LPTracker code end-->
+
+
+  
 
   
 </head>
