@@ -72,7 +72,7 @@ async function submitLead(event) {
   const digits = phone.replace(/\D/g, '');
   contact.setCustomValidity(/^\+?[\d\s()\-]+$/.test(phone) && digits.length >= 10 && digits.length <= 15 ? '' : 'Введите номер телефона: от 10 до 15 цифр, можно с кодом страны.');
   if (!form.reportValidity()) return;
-  const status = document.querySelector(form.id === 'quiz-lead-form' ? '#quiz-form-status' : '#form-status');
+  const status = document.querySelector(form.id === 'quiz-lead-form' ? '#quiz-form-status' : form.id === 'quick-lead-form' ? '#quick-form-status' : '#form-status');
   status.hidden = false;
   const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
   form.dataset.submitting = 'true';
@@ -80,9 +80,10 @@ async function submitLead(event) {
   status.textContent = 'Отправляем…';
   try {
     const payload = {
-      name: name.value.trim(), phone,
+      name: name?.value.trim() || '', phone,
+      contact_method: form.elements.contact_method?.value || 'Не указан',
       interest: form.elements.interest?.value || 'Бесплатный пробный урок',
-      source: form.id === 'quiz-lead-form' ? 'Квиз' : 'Форма записи',
+      source: form.id === 'quiz-lead-form' ? 'Квиз' : form.id === 'quick-lead-form' ? 'Короткая форма перед направлениями' : 'Форма записи',
       _subject: 'Новая заявка — Китайский с Кристиной',
       quiz: questions.map((question, index) => `${question.title}: ${answers[index] || 'Пропущено'}`).join('\n')
     };
@@ -104,13 +105,25 @@ async function submitLead(event) {
 }
 document.querySelector('#lead-form').addEventListener('submit', submitLead);
 document.querySelector('#quiz-lead-form').addEventListener('submit', submitLead);
-document.querySelectorAll('#name, #contact, #quiz-name, #quiz-contact').forEach(input => input.addEventListener('input', () => input.setCustomValidity('')));
+document.querySelector('#quick-lead-form').addEventListener('submit', submitLead);
+document.querySelectorAll('#name, #contact, #quiz-name, #quiz-contact, #quick-contact-phone').forEach(input => input.addEventListener('input', () => input.setCustomValidity('')));
 function mountVideo(selector, src, portrait) {
   if (!src) return;
   const container = document.querySelector(selector);
   const video = document.createElement('video'); video.controls = true; video.playsInline = true; video.preload = 'metadata'; video.src = src;
   if (portrait) video.poster = 'assets/kristina-beijing.jpg';
   video.className = portrait ? 'loaded-video portrait' : 'loaded-video';
+  // Track actual playback once per video per page load.
+  let startTracked = false;
+  video.addEventListener('playing', () => {
+    if (startTracked || typeof window.ym !== 'function') return;
+    try {
+      window.ym(113955524, 'reachGoal', 'video_start', {
+        video_name: selector === '.intro-video' ? 'greeting' : 'lesson'
+      });
+      startTracked = true;
+    } catch { /* Analytics must never interrupt playback. */ }
+  });
   container.replaceChildren(video); container.classList.add('has-video');
 }
 mountVideo('.intro-video', MEDIA.greeting, true); mountVideo('.lesson-video', MEDIA.lesson, false);
@@ -150,3 +163,15 @@ function initTrialCountdown() {
   document.addEventListener('visibilitychange', update);
 }
 initTrialCountdown();
+
+// Reveal once, keeping the form accessible even without animation support.
+const quickCard = document.querySelector('.quick-contact-card');
+if (quickCard && 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const quickObserver = new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.isIntersecting)) {
+      quickCard.classList.add('quick-revealed');
+      quickObserver.disconnect();
+    }
+  }, { threshold: 0.15 });
+  quickObserver.observe(quickCard);
+}
